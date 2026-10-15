@@ -44,6 +44,13 @@ public actor TaskProcessor {
         worker: @escaping @Sendable (Job) async throws -> Int
     ) async throws -> [JobResult] {
         try checkForDuplicateIDs(jobs)
-        fatalError("Implement Homework 2")
+        // The base worker has no attempt number, so wrap it and allow exactly one attempt.
+        return await runJobs(
+            jobs,
+            maximumConcurrency: maximumConcurrency,
+            maximumAttempts: 1
+        ) { job, _ in
+            try await worker(job)
+        }
     }
 }
