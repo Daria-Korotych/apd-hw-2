@@ -30,8 +30,13 @@ public enum TaskProcessorError: Error, Equatable {
 }
 
 public actor TaskProcessor {
+    let maximumConcurrency: Int
+
     public init(maximumConcurrency: Int) throws {
-        fatalError("Implement Homework 2")
+        if maximumConcurrency <= 0 {
+            throw TaskProcessorError.nonPositiveMaximumConcurrency
+        }
+        self.maximumConcurrency = maximumConcurrency
     }
 
     public func process(
