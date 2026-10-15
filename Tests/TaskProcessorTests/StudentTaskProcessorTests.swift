@@ -88,4 +88,26 @@ final class StudentTaskProcessorTests: XCTestCase {
         let startedIDs = await log.startedIDs
         XCTAssertEqual(startedIDs, ["cancelsItself", "runsAfter"])
     }
+
+    func testCallerCancellationKeepsFinishedCancelsRunningSkipsQueued() async throws {
+        let processor = try TaskProcessor(maximumConcurrency: 1)
+        let worker = ControlledWorker(["done", "running", "queued"])
+        let processing = worker.start(makeJobs(["done", "running", "queued"]), on: processor)
+
+        // One slot: "running" starts only after "done" has finished.
+        await worker.finish("done")
+        await worker.waitUntilStarted("running")
+        processing.cancel()
+        // Release every job: if "queued" was wrongly started, it must not hang the test.
+        await worker.releaseAll()
+
+        let results = try await processing.value
+        XCTAssertEqual(results, expectedResults(
+            ("done", .succeeded(1)),
+            ("running", .cancelled),
+            ("queued", .cancelled)
+        ))
+        let startedIDs = await worker.log.startedIDs
+        XCTAssertEqual(startedIDs, ["done", "running"])
+    }
 }

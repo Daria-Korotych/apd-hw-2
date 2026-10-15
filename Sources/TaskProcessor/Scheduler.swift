@@ -25,9 +25,10 @@ func runJobs(
         var runningCount = 0
 
         while true {
-            // Fill every free slot, left to right.
+            // Fill every free slot, left to right, unless the caller has cancelled.
             while runningCount < maximumConcurrency
-                && nextIndex < jobs.count {
+                && nextIndex < jobs.count
+                && !Task.isCancelled {
                 let index = nextIndex
                 let job = jobs[index]
                 group.addTask {
