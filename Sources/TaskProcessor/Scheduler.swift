@@ -57,18 +57,28 @@ func runJobs(
     return results
 }
 
-/// Calls the worker for one job and turns its result or error into a JobOutcome.
+/// Calls the worker for one job, retrying ordinary errors until `maximumAttempts` is reached.
 func runJob(
     _ job: Job,
     maximumAttempts: Int,
     worker: @Sendable (Job, Int) async throws -> Int
 ) async -> JobOutcome {
-    do {
-        let value = try await worker(job, 1)
-        return .succeeded(value)
-    } catch is CancellationError {
-        return .cancelled
-    } catch {
-        return .failed
+    for attempt in 1...maximumAttempts {
+        // No new worker call may start after the caller has cancelled.
+        if attempt > 1 && Task.isCancelled {
+            return .cancelled
+        }
+
+        do {
+            let value = try await worker(job, attempt)
+            return .succeeded(value)
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            if attempt == maximumAttempts {
+                return .failed
+            }
+        }
     }
+    return .failed
 }
