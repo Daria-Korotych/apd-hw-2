@@ -27,14 +27,15 @@ final class StudentTaskProcessorTests: XCTestCase {
         let worker = ControlledWorker(["a", "b", "c", "d"])
         let processing = worker.start(makeJobs(["a", "b", "c", "d"]), on: processor)
 
+        // "a" and "b" run in parallel, so either may log first: compare which jobs started, not their order.
         await worker.waitUntilStarted("a", "b")
         let startedWhileFull = await worker.log.startedIDs
-        XCTAssertEqual(startedWhileFull, ["a", "b"])
+        XCTAssertEqual(Set(startedWhileFull), ["a", "b"])
 
         await worker.finish("a")
         await worker.waitUntilStarted("c")
         let startedAfterOneFinished = await worker.log.startedIDs
-        XCTAssertEqual(startedAfterOneFinished, ["a", "b", "c"])
+        XCTAssertEqual(Set(startedAfterOneFinished), ["a", "b", "c"])
 
         await worker.releaseAll()
         _ = try await processing.value
