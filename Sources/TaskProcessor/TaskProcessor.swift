@@ -43,6 +43,7 @@ public actor TaskProcessor {
         _ jobs: [Job],
         worker: @escaping @Sendable (Job) async throws -> Int
     ) async throws -> [JobResult] {
+        try checkForDuplicateIDs(jobs)
         fatalError("Implement Homework 2")
     }
 }
