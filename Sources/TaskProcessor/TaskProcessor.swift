@@ -30,14 +30,27 @@ public enum TaskProcessorError: Error, Equatable {
 }
 
 public actor TaskProcessor {
+    let maximumConcurrency: Int
+
     public init(maximumConcurrency: Int) throws {
-        fatalError("Implement Homework 2")
+        if maximumConcurrency <= 0 {
+            throw TaskProcessorError.nonPositiveMaximumConcurrency
+        }
+        self.maximumConcurrency = maximumConcurrency
     }
 
     public func process(
         _ jobs: [Job],
         worker: @escaping @Sendable (Job) async throws -> Int
     ) async throws -> [JobResult] {
-        fatalError("Implement Homework 2")
+        try checkForDuplicateIDs(jobs)
+        // The base worker has no attempt number, so wrap it and allow exactly one attempt.
+        return await runJobs(
+            jobs,
+            maximumConcurrency: maximumConcurrency,
+            maximumAttempts: 1
+        ) { job, _ in
+            try await worker(job)
+        }
     }
 }
